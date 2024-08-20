@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+import {PriceConverter} from "./PriceConverter.sol";
+
+contract FundMe {
+    using PriceConverter for uint256;  
+
+    uint256 public minimumUSD = 5e18;
+    address[] public funders;
+    mapping(address => uint256) public addresstoamountFunded;
+    
+    // New: Mapping to track connected users
+    mapping(address => bool) public isConnected;
+    
+    //Contract Constructor
+    address public owner;
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function fund() public payable {
+        require(msg.value >= minimumUSD, "Don't send enough ETH");
+        funders.push(msg.sender);
+        addresstoamountFunded[msg.sender] += msg.value;
+    }
+    
+    function withdraw() public onlyOwner {
+        for (uint256 funderIndex = 0; funderIndex < funders.length; funderIndex++) {
+            address funder = funders[funderIndex];
+            addresstoamountFunded[funder] = 0;
+        }
+        funders = new address[](0);
+
+        payable(msg.sender).transfer(address(this).balance);
+    }
+
+    // New: Connect function
+    function connect() public {
+        isConnected[msg.sender] = true;
+    }
+
+    //Function Modifier
+    modifier onlyOwner {
+        require(msg.sender == owner, "Sender is not owner");
+        _;
+    }
+}
